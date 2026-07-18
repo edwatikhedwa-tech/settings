@@ -1,6 +1,7 @@
 name: development
 policies:
   - core
+  - legal-compliance
   - coding-policy
   - code-verification
 clients:

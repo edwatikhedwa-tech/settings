@@ -1,0 +1,3 @@
+# Generated project-level Codex configuration.
+# Review before copying into .codex/config.toml.
+model_instructions_file = "../generated/codex/instructions.md"

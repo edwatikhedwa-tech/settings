@@ -1,6 +1,7 @@
 name: strict-research
 policies:
   - core
+  - legal-compliance
   - evidence-first
   - research-first
   - contradiction-audit

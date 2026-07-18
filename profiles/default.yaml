@@ -1,6 +1,7 @@
 name: default
 policies:
   - core
+  - legal-compliance
   - evidence-first
   - clarification-policy
 clients:

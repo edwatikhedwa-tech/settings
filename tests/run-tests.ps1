@@ -17,8 +17,10 @@ function Read-Text($Path) {
 
 Assert-True (Test-Path (Join-Path $Root "mcp\servers.yaml")) "mcp/servers.yaml missing"
 Assert-True (Test-Path (Join-Path $Root "mcp\schema.json")) "mcp/schema.json missing"
+Assert-True (Test-Path (Join-Path $Root "policies\legal-compliance.md")) "legal compliance policy missing"
 Assert-True ((Read-Text (Join-Path $Root "mcp\servers.yaml")) -match "secret_names") "servers.yaml lacks secret_names"
 Assert-True ((Read-Text (Join-Path $Root ".gitignore")) -match "\.env") ".gitignore does not ignore .env"
+Assert-True ((Read-Text (Join-Path $Root "policies\legal-compliance.md")) -match "CAPTCHA") "legal compliance policy lacks CAPTCHA guard"
 
 $secretPattern = "(sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})"
 $files = Get-ChildItem -LiteralPath $Root -Recurse -File |

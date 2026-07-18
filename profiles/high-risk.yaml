@@ -1,6 +1,7 @@
 name: high-risk
 policies:
   - core
+  - legal-compliance
   - evidence-first
   - security-policy
   - clarification-policy

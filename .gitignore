@@ -1,0 +1,9 @@
+.env
+*.log
+.agent-control-plane/
+backups/
+generated/
+!generated/.gitkeep
+__pycache__/
+.pytest_cache/
+node_modules/

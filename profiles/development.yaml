@@ -1,0 +1,9 @@
+name: development
+policies:
+  - core
+  - coding-policy
+  - code-verification
+clients:
+  codex: true
+  claude-code: true
+  chatgpt: manual

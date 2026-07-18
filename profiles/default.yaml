@@ -1,0 +1,9 @@
+name: default
+policies:
+  - core
+  - evidence-first
+  - clarification-policy
+clients:
+  codex: true
+  claude-code: true
+  chatgpt: manual

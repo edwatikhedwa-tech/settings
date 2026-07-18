@@ -1,0 +1,10 @@
+name: strict-research
+policies:
+  - core
+  - evidence-first
+  - research-first
+  - contradiction-audit
+clients:
+  codex: true
+  claude-code: true
+  chatgpt: manual

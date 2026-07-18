@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Control Plane MCP Registry",
+  "type": "object",
+  "required": ["version", "servers"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "servers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "enabled",
+          "profiles",
+          "transport",
+          "location",
+          "supported_clients",
+          "supported_os",
+          "required_programs",
+          "secret_names",
+          "official_source",
+          "version_policy",
+          "trust_level",
+          "permissions",
+          "security_notes"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "description": { "type": "string", "minLength": 1 },
+          "enabled": { "type": "boolean" },
+          "profiles": { "type": "array", "items": { "type": "string" } },
+          "transport": { "enum": ["stdio", "streamable-http"] },
+          "location": { "enum": ["local", "remote"] },
+          "command": { "type": ["string", "null"] },
+          "args": { "type": ["array", "null"], "items": { "type": "string" } },
+          "url": { "type": ["string", "null"] },
+          "supported_clients": { "type": "array", "items": { "enum": ["codex", "claude-code", "chatgpt", "other"] } },
+          "supported_os": { "type": "array", "items": { "enum": ["windows", "macos", "linux"] } },
+          "required_programs": { "type": "array", "items": { "type": "string" } },
+          "install": { "type": ["string", "null"] },
+          "env": { "type": "array", "items": { "type": "string" } },
+          "secret_names": { "type": "array", "items": { "type": "string" } },
+          "official_source": { "type": "string", "minLength": 1 },
+          "version_policy": { "type": "string", "minLength": 1 },
+          "verify_command": { "type": ["string", "null"] },
+          "health_check": { "type": ["string", "null"] },
+          "trust_level": { "enum": ["low", "medium", "high"] },
+          "permissions": {
+            "type": "object",
+            "required": ["filesystem", "network", "can_modify_external_data"],
+            "additionalProperties": false,
+            "properties": {
+              "filesystem": { "type": "array", "items": { "type": "string" } },
+              "network": { "type": "boolean" },
+              "can_modify_external_data": { "type": "boolean" }
+            }
+          },
+          "security_notes": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

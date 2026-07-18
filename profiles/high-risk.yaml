@@ -1,0 +1,10 @@
+name: high-risk
+policies:
+  - core
+  - evidence-first
+  - security-policy
+  - clarification-policy
+clients:
+  codex: true
+  claude-code: true
+  chatgpt: manual

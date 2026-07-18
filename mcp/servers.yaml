@@ -1,0 +1,27 @@
+version: 1
+servers:
+  - name: example-filesystem
+    description: "Пример локального MCP-сервера. Отключён по умолчанию."
+    enabled: false
+    profiles: ["development"]
+    transport: stdio
+    location: local
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "%USERPROFILE%"]
+    url: null
+    supported_clients: ["codex", "claude-code"]
+    supported_os: ["windows"]
+    required_programs: ["node", "npx"]
+    install: "Установить Node.js LTS из официального источника; пакет запускается через npx при явном включении."
+    env: []
+    secret_names: []
+    official_source: "https://modelcontextprotocol.io/"
+    version_policy: "unpinned-example-disabled"
+    verify_command: null
+    health_check: null
+    trust_level: low
+    permissions:
+      filesystem: ["%USERPROFILE%"]
+      network: false
+      can_modify_external_data: false
+    security_notes: "Пример отключён. Перед включением нужно закрепить пакет/версию и проверить официальный пакет."

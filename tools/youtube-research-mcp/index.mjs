@@ -2,6 +2,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { buildSearchPlan, rankResearchCandidates, selectCandidateLimit } from "./research.mjs";
+import { defaultCaptureDirectory, listCaptures } from "../youtube-research-capture/capture-store.mjs";
 
 const apiBase = "https://www.googleapis.com/youtube/v3";
 const server = new Server(
@@ -86,6 +87,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         additionalProperties: false,
       },
     },
+    {
+      name: "youtube_capture_latest",
+      description: "Read a private local capture made by the user with YouTube Research Capture. It can contain text copied by the user from YouTube Summary or text visible in YouTube, and is never committed to Git.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          video_url: { type: "string", description: "Optional exact YouTube watch URL to select a capture." },
+          include_segments: { type: "boolean", default: true, description: "Return the user-provided text for research analysis." }
+        },
+        additionalProperties: false,
+      },
+    },
   ],
 }));
 
@@ -136,6 +149,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         selection: { scope: args.selection_scope ?? "auto", uniqueResultsFound: uniqueVideoIds.length, candidateLimit },
         candidateCount: ranked.candidates.length,
         ...ranked,
+      });
+    }
+    if (request.params.name === "youtube_capture_latest") {
+      const captures = await listCaptures(defaultCaptureDirectory);
+      const capture = args.video_url ? captures.find((item) => item.videoUrl === args.video_url) : captures[0];
+      if (!capture) return textResult({ found: false, message: "No matching local YouTube capture is available yet." });
+      const { capturePath, segments, ...metadata } = capture;
+      return textResult({
+        found: true,
+        ...metadata,
+        segmentCount: segments.length,
+        segments: args.include_segments === false ? undefined : segments,
+        storage: "private/research-cache/youtube-captures (gitignored)",
       });
     }
     return { isError: true, content: [{ type: "text", text: `Unknown tool: ${request.params.name}` }] };

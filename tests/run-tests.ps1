@@ -24,6 +24,8 @@ Assert-True (Test-Path (Join-Path $Root "skills\youtube-research\SKILL.md")) "yo
 Assert-True (Test-Path (Join-Path $Root "skills\topic-research\SKILL.md")) "topic-research skill missing"
 Assert-True (Test-Path (Join-Path $Root "templates\topic-research.md")) "topic-research template missing"
 Assert-True (Test-Path (Join-Path $Root "scripts\start-youtube-research.ps1")) "topic-research start script missing"
+Assert-True (Test-Path (Join-Path $Root "scripts\start-youtube-capture.ps1")) "YouTube capture start script missing"
+Assert-True (Test-Path (Join-Path $Root "extensions\youtube-research-capture\manifest.json")) "YouTube capture extension missing"
 Assert-True (Test-Path (Join-Path $Root "scripts\new-task.ps1")) "new-task script missing"
 Assert-True (Test-Path (Join-Path $Root "scripts\enable-youtube-mcp.ps1")) "YouTube MCP enable script missing"
 Assert-True (Test-Path (Join-Path $Root "policies\legal-compliance.md")) "legal compliance policy missing"
@@ -88,6 +90,9 @@ Assert-True ($LASTEXITCODE -eq 0) "YouTube MCP enable plan failed"
 & powershell -ExecutionPolicy Bypass -File (Join-Path $Root "scripts\start-youtube-research.ps1") -Slug test-topic -Title "Test topic" -Topic "Test topic" -Plan | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) "topic-research start plan failed"
 
+& powershell -ExecutionPolicy Bypass -File (Join-Path $Root "scripts\start-youtube-capture.ps1") -Plan | Out-Null
+Assert-True ($LASTEXITCODE -eq 0) "YouTube capture start plan failed"
+
 & powershell -ExecutionPolicy Bypass -File (Join-Path $Root "scripts\doctor.ps1") | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) "doctor failed"
 
@@ -96,6 +101,8 @@ Assert-True (Test-Path (Join-Path $youtubeMcp "package.json")) "YouTube MCP pack
 if (Test-Path (Join-Path $youtubeMcp "node_modules")) {
     & npm --prefix $youtubeMcp run test | Out-Null
     Assert-True ($LASTEXITCODE -eq 0) "YouTube MCP protocol test failed"
+    & npm --prefix $youtubeMcp run test:capture | Out-Null
+    Assert-True ($LASTEXITCODE -eq 0) "YouTube capture receiver test failed"
 } else {
     Write-Host "[SKIP] YouTube MCP dependencies are not installed."
 }

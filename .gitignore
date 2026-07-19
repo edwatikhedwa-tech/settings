@@ -6,3 +6,4 @@ __pycache__/
 .pytest_cache/
 node_modules/
 private/research-cache/
+private/research-cache/youtube-captures/

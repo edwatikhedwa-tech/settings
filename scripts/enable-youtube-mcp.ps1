@@ -30,8 +30,9 @@ $endMarker
 
 Write-AcpStatus -Level "INFO" -Message "YouTube MCP mode: $(if ($Apply) { 'Apply' } elseif ($DryRun) { 'DryRun' } else { 'Plan' })"
 if (-not (Test-Path -LiteralPath (Join-Path $root "tools\youtube-research-mcp\node_modules"))) {
-    Write-AcpStatus -Level "ERROR" -Message "Dependencies are missing. Run npm install in tools\youtube-research-mcp first."
-    exit 1
+    $level = if ($Apply) { "ERROR" } else { "WARN" }
+    Write-AcpStatus -Level $level -Message "Dependencies are missing. Run npm install in tools\youtube-research-mcp before applying this configuration."
+    if ($Apply) { exit 1 }
 }
 if (-not $key) {
     Write-AcpStatus -Level "WARN" -Message "YOUTUBE_API_KEY is not set. Create a restricted key before applying this configuration."

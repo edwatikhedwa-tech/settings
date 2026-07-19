@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Research Capture",
+  "version": "0.1.0",
+  "description": "Saves user-visible YouTube or YouTube Summary text to a local research inbox.",
+  "action": {
+    "default_title": "Capture YouTube research text",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/watch*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": ["http://127.0.0.1:8765/*"],
+  "permissions": ["activeTab", "clipboardRead", "tabs", "alarms", "storage"]
+}

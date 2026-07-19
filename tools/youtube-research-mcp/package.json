@@ -6,7 +6,8 @@
   "description": "Read-only YouTube Data API tools for Agent Control Plane.",
   "scripts": {
     "test": "node test.mjs",
-    "smoke": "node live-smoke.mjs"
+    "smoke": "node live-smoke.mjs",
+    "test:capture": "node ../youtube-research-capture/test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0"

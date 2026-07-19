@@ -1,0 +1,9 @@
+:root { color-scheme: light dark; font-family: Arial, sans-serif; }
+body { margin: 0; min-width: 310px; }
+main { padding: 14px; }
+h1 { font-size: 16px; margin: 0 0 10px; }
+p { font-size: 13px; line-height: 1.4; }
+button { width: 100%; border: 0; border-radius: 4px; padding: 9px; background: #0b57d0; color: #fff; cursor: pointer; margin-top: 8px; }
+button.secondary { background: #5f6368; }
+button:disabled { cursor: wait; opacity: 0.7; }
+.note { color: #666; font-size: 11px; margin-bottom: 0; }

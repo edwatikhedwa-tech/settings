@@ -1,6 +1,10 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { buildSearchPlan, rankResearchCandidates, selectCandidateLimit } from "./research.mjs";
+import { captureJobStatus, createCaptureJob, defaultCaptureDirectory, defaultJobDirectory, listCaptures } from "../youtube-research-capture/capture-store.mjs";
+import { fetchSupadataTranscripts } from "./supadata.mjs";
+import { monthlyBudget, readSupadataBudget } from "./budget.mjs";
 
 const apiBase = "https://www.googleapis.com/youtube/v3";
 const server = new Server(
@@ -67,6 +71,76 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         additionalProperties: false,
       },
     },
+    {
+      name: "youtube_research_candidates",
+      description: "Search several bounded queries, deduplicate results, enrich them with public metadata, and return an adaptive 15, 30, or 50-video candidate set plus a six-video deep-dive set.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          topic: { type: "string", minLength: 1 },
+          queries: { type: "array", minItems: 1, maxItems: 4, items: { type: "string", minLength: 1 } },
+          selection_scope: { type: "string", enum: ["auto", "focused", "broad", "wide"], default: "auto" },
+          max_candidates: { type: "integer", minimum: 1, maximum: 50, description: "Optional explicit limit. Overrides selection_scope." },
+          deep_dive_count: { type: "integer", minimum: 1, maximum: 6, default: 6 },
+          language: { type: "string", minLength: 2, maxLength: 5 },
+          published_after: { type: "string", description: "RFC 3339 timestamp, for example 2026-01-01T00:00:00Z." },
+        },
+        required: ["topic"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "youtube_capture_latest",
+      description: "Read a private local capture made by the user with YouTube Research Capture. It can contain text copied by the user from YouTube Summary or text visible in YouTube, and is never committed to Git.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          video_url: { type: "string", description: "Optional exact YouTube watch URL to select a capture." },
+          include_segments: { type: "boolean", default: true, description: "Return the user-provided text for research analysis." }
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "youtube_capture_enqueue",
+      description: "Create a local background queue for YouTube Research Capture. The user-installed extension processes up to six selected YouTube videos through its existing YouTube Summary widget and records only the resulting local text.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          topic: { type: "string", minLength: 1 },
+          video_urls: { type: "array", minItems: 1, maxItems: 6, items: { type: "string", minLength: 1 } },
+        },
+        required: ["topic", "video_urls"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "youtube_capture_job_status",
+      description: "Read the current status of a local YouTube Summary capture queue without reading or publishing full transcript text.",
+      inputSchema: {
+        type: "object",
+        properties: { job_id: { type: "string", minLength: 1 } },
+        required: ["job_id"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "youtube_transcript_extract",
+      description: "Extract transcript segments for up to six public YouTube URLs through the configured Supadata API. This sends URLs to Supadata, consumes its account credits, and returns an explicit unavailable status instead of inventing text.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          video_urls: { type: "array", minItems: 1, maxItems: 6, items: { type: "string", minLength: 1 } },
+        },
+        required: ["video_urls"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "youtube_transcript_budget",
+      description: "Read the local monthly Supadata research budget. It records attempted transcript API requests locally and never exposes the API key.",
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    },
   ],
 }));
 
@@ -91,6 +165,65 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         id: args.video_ids.join(","),
       });
       return textResult(payload);
+    }
+    if (request.params.name === "youtube_research_candidates") {
+      const queries = buildSearchPlan(args.topic, args.queries ?? []);
+      const searchPayloads = await Promise.all(queries.map((query) => youtubeGet("search", {
+        part: "snippet",
+        type: "video",
+        q: query,
+        maxResults: 15,
+        order: "relevance",
+        relevanceLanguage: args.language,
+        publishedAfter: args.published_after,
+      })));
+      const uniqueVideoIds = [...new Set(searchPayloads.flatMap((payload) => payload.items ?? []).map((item) => item.id?.videoId).filter(Boolean))];
+      const candidateLimit = args.max_candidates ?? selectCandidateLimit(args.selection_scope ?? "auto", uniqueVideoIds.length);
+      const videoIds = uniqueVideoIds.slice(0, 50);
+      const details = videoIds.length === 0 ? { items: [] } : await youtubeGet("videos", {
+        part: "snippet,contentDetails,statistics,status",
+        id: videoIds.join(","),
+      });
+      const ranked = rankResearchCandidates(details.items ?? [], args.topic, candidateLimit, args.deep_dive_count ?? 6);
+      return textResult({
+        topic: args.topic,
+        queries,
+        selection: { scope: args.selection_scope ?? "auto", uniqueResultsFound: uniqueVideoIds.length, candidateLimit },
+        candidateCount: ranked.candidates.length,
+        ...ranked,
+      });
+    }
+    if (request.params.name === "youtube_capture_latest") {
+      const captures = await listCaptures(defaultCaptureDirectory);
+      const capture = args.video_url ? captures.find((item) => item.videoUrl === args.video_url) : captures[0];
+      if (!capture) return textResult({ found: false, message: "No matching local YouTube capture is available yet." });
+      const { capturePath, segments, ...metadata } = capture;
+      return textResult({
+        found: true,
+        ...metadata,
+        segmentCount: segments.length,
+        segments: args.include_segments === false ? undefined : segments,
+        storage: "private/research-cache/youtube-captures (gitignored)",
+      });
+    }
+    if (request.params.name === "youtube_capture_enqueue") {
+      const job = await createCaptureJob(defaultJobDirectory, { topic: args.topic, videoUrls: args.video_urls });
+      return textResult({ jobId: job.id, topic: job.topic, itemCount: job.items.length, status: "pending", note: "The user-installed local extension processes the queue in the background and stops on unavailable text or service limits." });
+    }
+    if (request.params.name === "youtube_capture_job_status") {
+      const job = await captureJobStatus(defaultJobDirectory, args.job_id);
+      return textResult({ jobId: job.id, topic: job.topic, createdAt: job.createdAt, items: job.items.map(({ videoUrl, videoId, status, attempts, error, capturedAt }) => ({ videoUrl, videoId, status, attempts, error, capturedAt })) });
+    }
+    if (request.params.name === "youtube_transcript_extract") {
+      const transcripts = await fetchSupadataTranscripts(args.video_urls);
+      return textResult({
+        provider: "supadata",
+        storage: "returned only to the active research run; full transcripts must remain outside public Git",
+        results: transcripts,
+      });
+    }
+    if (request.params.name === "youtube_transcript_budget") {
+      return textResult({ provider: "supadata", ...await readSupadataBudget({ limit: monthlyBudget() }) });
     }
     return { isError: true, content: [{ type: "text", text: `Unknown tool: ${request.params.name}` }] };
   } catch (error) {

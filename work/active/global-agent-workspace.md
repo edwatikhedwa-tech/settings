@@ -19,16 +19,19 @@ The repository is the canonical source for policies, skills, MCP registry, task 
 - Re-running `bootstrap.ps1 -Apply -Client codex` is idempotent.
 - `work/` and `knowledge/` now store task continuity and research summaries in Git.
 - A local read-only YouTube Data API MCP server is available in `tools/youtube-research-mcp/`.
+- The YouTube MCP passed its live API smoke test; search and video-statistics calls also succeeded for a real research topic.
+- The first bounded YouTube research note is recorded in `knowledge/youtube/agent-environment-setup.md`. Selected videos did not expose captions to the permitted transcript tool, and that limitation is recorded in the note.
 
 ## Decisions
 
 - Use Git as the export/import mechanism and canonical history.
 - Keep global rules in a managed block so existing user guidance is preserved.
-- Keep MCP servers opt-in; `youtube-research` is registered but disabled until its key is configured.
+- Keep MCP servers opt-in and secrets outside Git; `youtube-research` is configured locally through the `YOUTUBE_API_KEY` environment variable.
 - Record YouTube research as bounded, cited notes rather than claiming an unbounded scan of all videos.
+- Do not bypass video access controls or infer spoken claims when a transcript is unavailable.
 
 ## Next Action
 
-Create a Google Cloud project, enable YouTube Data API v3, create a restricted `YOUTUBE_API_KEY`, then enable the registered local MCP server.
+Restart Codex so the newly configured local YouTube MCP is loaded by a fresh application session, then use the `youtube-research` skill for subsequent bounded notes.
 
 ## References

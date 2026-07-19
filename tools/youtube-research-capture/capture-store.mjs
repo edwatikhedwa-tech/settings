@@ -1,9 +1,11 @@
 import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
 export const defaultCaptureDirectory = path.resolve(moduleDirectory, "..", "..", "private", "research-cache", "youtube-captures");
+export const defaultJobDirectory = path.resolve(moduleDirectory, "..", "..", "private", "research-cache", "youtube-jobs");
 const maxTextLength = 200_000;
 const maxSegmentCount = 20_000;
 
@@ -38,7 +40,7 @@ export function validateCapture(value) {
     channel: cleanText(value?.channel, 1_000),
     description: cleanText(value?.description, 50_000),
     segments,
-    source: ["visible-youtube-transcript", "user-copied-youtube-summary"].includes(value?.source) ? value.source : "user-provided-text",
+    source: ["visible-youtube-transcript", "user-copied-youtube-summary", "youtube-summary-widget"].includes(value?.source) ? value.source : "user-provided-text",
   };
 }
 
@@ -77,4 +79,78 @@ export async function listCaptures(directory = defaultCaptureDirectory) {
 
 export async function removeCapture(capturePath) {
   await rm(capturePath, { force: true });
+}
+
+async function writeJson(destination, value) {
+  await mkdir(path.dirname(destination), { recursive: true });
+  const temporary = `${destination}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  await rename(temporary, destination);
+}
+
+function jobPath(directory, jobId) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(jobId)) throw new Error("Invalid capture job ID.");
+  return path.join(directory, `${jobId}.json`);
+}
+
+export async function createCaptureJob(directory = defaultJobDirectory, { topic, videoUrls }) {
+  const unique = [...new Set((videoUrls ?? []).map((url) => cleanText(url, 2_048)).filter(Boolean))].slice(0, 6);
+  if (!cleanText(topic, 1_000) || unique.length === 0) throw new Error("A topic and at least one YouTube URL are required.");
+  const items = unique.map((videoUrl) => {
+    const capture = validateCapture({ videoUrl, segments: [{ text: "queued" }] });
+    return { videoUrl: capture.videoUrl, videoId: capture.videoId, status: "pending", attempts: 0, error: null, capturedAt: null };
+  });
+  const job = { id: `youtube-${Date.now()}-${randomUUID().slice(0, 8)}`, topic: cleanText(topic, 1_000), createdAt: new Date().toISOString(), items };
+  await writeJson(jobPath(directory, job.id), job);
+  return job;
+}
+
+async function readJob(directory, jobId) {
+  return JSON.parse(await readFile(jobPath(directory, jobId), "utf8"));
+}
+
+async function listJobs(directory = defaultJobDirectory) {
+  try {
+    const entries = await readdir(directory, { withFileTypes: true });
+    const jobs = await Promise.all(entries.filter((entry) => entry.isFile() && entry.name.endsWith(".json")).map(async (entry) => {
+      try { return JSON.parse(await readFile(path.join(directory, entry.name), "utf8")); } catch { return null; }
+    }));
+    return jobs.filter(Boolean).sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  } catch (error) {
+    if (error?.code === "ENOENT") return [];
+    throw error;
+  }
+}
+
+export async function nextCaptureJobItem(directory = defaultJobDirectory) {
+  for (const job of await listJobs(directory)) {
+    const item = job.items.find((candidate) => candidate.status === "pending");
+    if (item) return { job, item };
+  }
+  return null;
+}
+
+export async function completeCaptureJobItem(jobDirectory, captureDirectory, jobId, captureValue) {
+  const capture = validateCapture(captureValue);
+  const job = await readJob(jobDirectory, jobId);
+  const item = job.items.find((candidate) => candidate.videoId === capture.videoId && candidate.status === "pending");
+  if (!item) throw new Error("No pending job item matches this capture.");
+  const savedPath = await writeCapture(captureDirectory, capture);
+  Object.assign(item, { status: "completed", attempts: item.attempts + 1, error: null, capturedAt: capture.capturedAt });
+  await writeJson(jobPath(jobDirectory, jobId), job);
+  return { capture, savedPath, job };
+}
+
+export async function failCaptureJobItem(jobDirectory, jobId, videoUrl, reason) {
+  const expected = validateCapture({ videoUrl, segments: [{ text: "failed" }] });
+  const job = await readJob(jobDirectory, jobId);
+  const item = job.items.find((candidate) => candidate.videoId === expected.videoId && candidate.status === "pending");
+  if (!item) throw new Error("No pending job item matches this failure.");
+  Object.assign(item, { status: "failed", attempts: item.attempts + 1, error: cleanText(reason, 1_000) || "No transcript was available.", capturedAt: null });
+  await writeJson(jobPath(jobDirectory, jobId), job);
+  return job;
+}
+
+export async function captureJobStatus(directory = defaultJobDirectory, jobId) {
+  return readJob(directory, jobId);
 }

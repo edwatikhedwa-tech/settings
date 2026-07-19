@@ -43,6 +43,31 @@ async function store(payload) {
   return chrome.runtime.sendMessage({ type: "store-youtube-capture", payload });
 }
 
+function summaryWidgetText() {
+  const controls = [...document.querySelectorAll("button, [role=button]")].filter((element) => /copy\s+transcript|копировать\s+расшифров/i.test(`${textOf(element)} ${element.getAttribute("aria-label") || ""} ${element.getAttribute("title") || ""}`));
+  for (const control of controls) {
+    let root = control;
+    for (let depth = 0; depth < 7 && root.parentElement; depth += 1) {
+      root = root.parentElement;
+      const value = textOf(root);
+      if (value.length > 200) return value.replace(/copy\s+transcript[^\n]*/gi, "").replace(/копировать\s+расшифров[^\n]*/gi, "").trim();
+    }
+  }
+  return "";
+}
+
+async function extractSummaryWidget() {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const transcript = summaryWidgetText();
+    if (transcript.length > 200) {
+      await chrome.runtime.sendMessage({ type: "youtube-summary-auto-result", capture: { ...basePayload(), segments: [{ timestamp: "", text: transcript }], source: "youtube-summary-widget" } });
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+  await chrome.runtime.sendMessage({ type: "youtube-summary-auto-result", videoUrl: location.href, reason: "YouTube Summary did not expose a transcript within 40 seconds; the item was not retried automatically." });
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "capture-clipboard-youtube-summary") {
     store({ ...basePayload(), segments: [{ timestamp: "", text: String(message.transcript || "") }], source: "user-copied-youtube-summary" })
@@ -59,5 +84,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .then(sendResponse).catch((error) => sendResponse({ error: error.message }));
     return true;
   }
+  if (message?.type === "extract-youtube-summary") {
+    extractSummaryWidget();
+    sendResponse({ ok: true });
+    return undefined;
+  }
   return undefined;
 });
+
+chrome.runtime.sendMessage({ type: "youtube-summary-page-ready" }).catch(() => undefined);

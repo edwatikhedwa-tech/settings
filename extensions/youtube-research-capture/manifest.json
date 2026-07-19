@@ -19,5 +19,5 @@
     }
   ],
   "host_permissions": ["http://127.0.0.1:8765/*"],
-  "permissions": ["activeTab", "clipboardRead"]
+  "permissions": ["activeTab", "clipboardRead", "tabs", "alarms", "storage"]
 }

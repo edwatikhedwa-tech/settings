@@ -2,7 +2,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { buildSearchPlan, rankResearchCandidates, selectCandidateLimit } from "./research.mjs";
-import { defaultCaptureDirectory, listCaptures } from "../youtube-research-capture/capture-store.mjs";
+import { captureJobStatus, createCaptureJob, defaultCaptureDirectory, defaultJobDirectory, listCaptures } from "../youtube-research-capture/capture-store.mjs";
 
 const apiBase = "https://www.googleapis.com/youtube/v3";
 const server = new Server(
@@ -99,6 +99,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         additionalProperties: false,
       },
     },
+    {
+      name: "youtube_capture_enqueue",
+      description: "Create a local background queue for YouTube Research Capture. The user-installed extension processes up to six selected YouTube videos through its existing YouTube Summary widget and records only the resulting local text.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          topic: { type: "string", minLength: 1 },
+          video_urls: { type: "array", minItems: 1, maxItems: 6, items: { type: "string", minLength: 1 } },
+        },
+        required: ["topic", "video_urls"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "youtube_capture_job_status",
+      description: "Read the current status of a local YouTube Summary capture queue without reading or publishing full transcript text.",
+      inputSchema: {
+        type: "object",
+        properties: { job_id: { type: "string", minLength: 1 } },
+        required: ["job_id"],
+        additionalProperties: false,
+      },
+    },
   ],
 }));
 
@@ -163,6 +186,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         segments: args.include_segments === false ? undefined : segments,
         storage: "private/research-cache/youtube-captures (gitignored)",
       });
+    }
+    if (request.params.name === "youtube_capture_enqueue") {
+      const job = await createCaptureJob(defaultJobDirectory, { topic: args.topic, videoUrls: args.video_urls });
+      return textResult({ jobId: job.id, topic: job.topic, itemCount: job.items.length, status: "pending", note: "The user-installed local extension processes the queue in the background and stops on unavailable text or service limits." });
+    }
+    if (request.params.name === "youtube_capture_job_status") {
+      const job = await captureJobStatus(defaultJobDirectory, args.job_id);
+      return textResult({ jobId: job.id, topic: job.topic, createdAt: job.createdAt, items: job.items.map(({ videoUrl, videoId, status, attempts, error, capturedAt }) => ({ videoUrl, videoId, status, attempts, error, capturedAt })) });
     }
     return { isError: true, content: [{ type: "text", text: `Unknown tool: ${request.params.name}` }] };
   } catch (error) {

@@ -17,7 +17,7 @@ const client = new Client({ name: "youtube-research-mcp-test", version: "0.1.0" 
 try {
   await client.connect(transport);
   const listed = await client.request({ method: "tools/list", params: {} }, ListToolsResultSchema);
-  assert.deepEqual(listed.tools.map((tool) => tool.name).sort(), ["youtube_capture_latest", "youtube_research_candidates", "youtube_search", "youtube_video_details"]);
+  assert.deepEqual(listed.tools.map((tool) => tool.name).sort(), ["youtube_capture_enqueue", "youtube_capture_job_status", "youtube_capture_latest", "youtube_research_candidates", "youtube_search", "youtube_video_details"]);
 
   const result = await client.request(
     { method: "tools/call", params: { name: "youtube_search", arguments: { query: "Codex" } } },

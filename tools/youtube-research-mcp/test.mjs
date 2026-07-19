@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { CallToolResultSchema, ListToolsResultSchema } from "@modelcontextprotocol/sdk/types.js";
-import { buildSearchPlan, extractExternalLinks, rankResearchCandidates, validateResearchReport } from "./research.mjs";
+import { buildSearchPlan, extractExternalLinks, rankResearchCandidates, selectCandidateLimit, validateResearchReport } from "./research.mjs";
 
 const serverPath = fileURLToPath(new URL("./index.mjs", import.meta.url));
 const transport = new StdioClientTransport({
@@ -27,6 +27,10 @@ try {
   assert.match(result.content[0].text, /YOUTUBE_API_KEY is not set/);
 
   assert.deepEqual(buildSearchPlan("agent environment", ["настройка агента", "agent environment"]), ["настройка агента", "agent environment", "agent environment tutorial", "agent environment best practices"]);
+  assert.equal(selectCandidateLimit("auto", 10), 15);
+  assert.equal(selectCandidateLimit("auto", 30), 30);
+  assert.equal(selectCandidateLimit("auto", 50), 50);
+  assert.equal(selectCandidateLimit("wide", 1), 50);
   assert.deepEqual(extractExternalLinks("Docs: https://example.com/docs. Also https://example.org/x"), ["https://example.com/docs", "https://example.org/x"]);
 
   const ranked = rankResearchCandidates([

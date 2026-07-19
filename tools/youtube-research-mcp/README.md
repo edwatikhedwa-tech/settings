@@ -21,7 +21,7 @@ npm install
 
 The server exposes `youtube_search`, `youtube_video_details`, and `youtube_research_candidates`.
 
-`youtube_research_candidates` accepts up to four queries, combines the public search results, deduplicates videos, enriches them with public descriptions, external links, statistics, and the API caption flag, then returns at most 15 candidates and up to six deep-dive videos. It does not download captions or access private YouTube data.
+`youtube_research_candidates` accepts up to four queries, combines the public search results, deduplicates videos, enriches them with public descriptions, external links, statistics, and the API caption flag. In `auto` mode it returns 15, 30, or 50 candidates based on the number of unique results; `focused`, `broad`, and `wide` select those limits explicitly. It always returns up to six deep-dive videos. It does not download captions or access private YouTube data.
 
 For a repeatable research run, first create the report and task card:
 

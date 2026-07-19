@@ -33,7 +33,7 @@ try {
         arguments: {
           topic: "agent environment setup",
           queries: ["agent environment setup", "AI agent workspace setup", "настройка окружения агентов"],
-          max_candidates: 15,
+          selection_scope: "auto",
           deep_dive_count: 6,
         },
       },
@@ -45,7 +45,7 @@ try {
   if (!researchPayload.candidates?.length || !researchPayload.deepDive?.length) {
     throw new Error("MCP research tool returned no candidates or deep-dive videos.");
   }
-  if (researchPayload.candidates.length > 15 || researchPayload.deepDive.length > 6) {
+  if (researchPayload.candidates.length > 50 || researchPayload.deepDive.length > 6) {
     throw new Error("MCP research tool exceeded its bounded result limits.");
   }
   if (process.env.RESEARCH_SMOKE_OUTPUT === "1") console.log(JSON.stringify(researchPayload));

@@ -15,6 +15,15 @@ export function buildSearchPlan(topic, extraQueries = []) {
   return [...new Set([...supplied, ...defaults])].slice(0, 4);
 }
 
+export function selectCandidateLimit(scope = "auto", availableUnique = 0) {
+  if (scope === "focused") return 15;
+  if (scope === "broad") return 30;
+  if (scope === "wide") return 50;
+  if (availableUnique >= 45) return 50;
+  if (availableUnique >= 25) return 30;
+  return 15;
+}
+
 function tokens(value) {
   return normalizeText(value).toLocaleLowerCase().split(/[^\p{L}\p{N}]+/u).filter((token) => token.length > 2);
 }

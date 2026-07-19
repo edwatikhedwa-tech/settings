@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { buildSearchPlan, rankResearchCandidates, selectCandidateLimit } from "./research.mjs";
 import { captureJobStatus, createCaptureJob, defaultCaptureDirectory, defaultJobDirectory, listCaptures } from "../youtube-research-capture/capture-store.mjs";
+import { fetchSupadataTranscripts } from "./supadata.mjs";
 
 const apiBase = "https://www.googleapis.com/youtube/v3";
 const server = new Server(
@@ -122,6 +123,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         additionalProperties: false,
       },
     },
+    {
+      name: "youtube_transcript_extract",
+      description: "Extract transcript segments for up to six public YouTube URLs through the configured Supadata API. This sends URLs to Supadata, consumes its account credits, and returns an explicit unavailable status instead of inventing text.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          video_urls: { type: "array", minItems: 1, maxItems: 6, items: { type: "string", minLength: 1 } },
+        },
+        required: ["video_urls"],
+        additionalProperties: false,
+      },
+    },
   ],
 }));
 
@@ -194,6 +207,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (request.params.name === "youtube_capture_job_status") {
       const job = await captureJobStatus(defaultJobDirectory, args.job_id);
       return textResult({ jobId: job.id, topic: job.topic, createdAt: job.createdAt, items: job.items.map(({ videoUrl, videoId, status, attempts, error, capturedAt }) => ({ videoUrl, videoId, status, attempts, error, capturedAt })) });
+    }
+    if (request.params.name === "youtube_transcript_extract") {
+      const transcripts = await fetchSupadataTranscripts(args.video_urls);
+      return textResult({
+        provider: "supadata",
+        storage: "returned only to the active research run; full transcripts must remain outside public Git",
+        results: transcripts,
+      });
     }
     return { isError: true, content: [{ type: "text", text: `Unknown tool: ${request.params.name}` }] };
   } catch (error) {

@@ -4,6 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { CallToolResultSchema, ListToolsResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import { buildSearchPlan, extractExternalLinks, rankResearchCandidates, selectCandidateLimit, validateResearchReport } from "./research.mjs";
+import { fetchSupadataTranscripts, validateYouTubeUrl } from "./supadata.mjs";
 
 const serverPath = fileURLToPath(new URL("./index.mjs", import.meta.url));
 const transport = new StdioClientTransport({
@@ -17,7 +18,7 @@ const client = new Client({ name: "youtube-research-mcp-test", version: "0.1.0" 
 try {
   await client.connect(transport);
   const listed = await client.request({ method: "tools/list", params: {} }, ListToolsResultSchema);
-  assert.deepEqual(listed.tools.map((tool) => tool.name).sort(), ["youtube_capture_enqueue", "youtube_capture_job_status", "youtube_capture_latest", "youtube_research_candidates", "youtube_search", "youtube_video_details"]);
+  assert.deepEqual(listed.tools.map((tool) => tool.name).sort(), ["youtube_capture_enqueue", "youtube_capture_job_status", "youtube_capture_latest", "youtube_research_candidates", "youtube_search", "youtube_transcript_extract", "youtube_video_details"]);
 
   const result = await client.request(
     { method: "tools/call", params: { name: "youtube_search", arguments: { query: "Codex" } } },
@@ -25,6 +26,30 @@ try {
   );
   assert.equal(result.isError, true);
   assert.match(result.content[0].text, /YOUTUBE_API_KEY is not set/);
+
+  const transcriptToolResult = await client.request(
+    { method: "tools/call", params: { name: "youtube_transcript_extract", arguments: { video_urls: ["https://youtu.be/dQw4w9WgXcQ"] } } },
+    CallToolResultSchema,
+  );
+  assert.equal(transcriptToolResult.isError, true);
+  assert.match(transcriptToolResult.content[0].text, /SUPADATA_API_KEY is not set/);
+
+  assert.equal(validateYouTubeUrl("https://youtu.be/dQw4w9WgXcQ"), "https://youtu.be/dQw4w9WgXcQ");
+  assert.throws(() => validateYouTubeUrl("https://example.com/video"), /youtube\.com or youtu\.be/);
+  const transcriptResults = await fetchSupadataTranscripts(["https://www.youtube.com/watch?v=one", "https://www.youtube.com/watch?v=two"], {
+    apiKey: "test-key",
+    fetchFn: async (url) => ({
+      ok: url.searchParams.get("url").includes("one"),
+      status: 404,
+      json: async () => url.searchParams.get("url").includes("one")
+        ? { lang: "en", content: [{ text: "A transcript segment.", offset: 0, duration: 1000 }] }
+        : { message: "No transcript available" },
+    }),
+  });
+  assert.equal(transcriptResults[0].status, "available");
+  assert.equal(transcriptResults[0].segmentCount, 1);
+  assert.equal(transcriptResults[1].status, "unavailable");
+  assert.match(transcriptResults[1].error, /No transcript available/);
 
   assert.deepEqual(buildSearchPlan("agent environment", ["настройка агента", "agent environment"]), ["настройка агента", "agent environment", "agent environment tutorial", "agent environment best practices"]);
   assert.equal(selectCandidateLimit("auto", 10), 15);

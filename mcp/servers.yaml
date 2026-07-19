@@ -25,3 +25,28 @@ servers:
       network: false
       can_modify_external_data: false
     security_notes: "Пример отключён. Перед включением нужно закрепить пакет/версию и проверить официальный пакет."
+  - name: youtube-research
+    description: "Локальный read-only MCP для поиска и метаданных публичных роликов через YouTube Data API v3."
+    enabled: false
+    profiles: ["research"]
+    transport: stdio
+    location: local
+    command: "node"
+    args: ["tools/youtube-research-mcp/index.mjs"]
+    url: null
+    supported_clients: ["codex"]
+    supported_os: ["windows", "macos", "linux"]
+    required_programs: ["node", "npm"]
+    install: "В tools/youtube-research-mcp выполнить npm install; создать и ограничить ключ YouTube Data API v3."
+    env: ["YOUTUBE_API_KEY"]
+    secret_names: ["YOUTUBE_API_KEY"]
+    official_source: "https://developers.google.com/youtube/v3/getting-started"
+    version_policy: "@modelcontextprotocol/sdk pinned to 1.29.0"
+    verify_command: "node tools/youtube-research-mcp/index.mjs"
+    health_check: "Call youtube_search with a bounded query after setting YOUTUBE_API_KEY."
+    trust_level: medium
+    permissions:
+      filesystem: []
+      network: true
+      can_modify_external_data: false
+    security_notes: "Read-only public metadata. API key is forwarded from the local environment and must never be committed. Captions and private data are intentionally unsupported."

@@ -38,26 +38,69 @@ if (-not $Plan) {
     Write-AcpStatus -Level "INFO" -Message "Plan: scripts/build-configs.py will run."
 }
 
-$codexTarget = Join-Path $root ".codex\config.toml"
-$codexContent = @"
-# Managed by agent-control-plane.
-model_instructions_file = "../generated/codex/instructions.md"
-"@
-
 if ($Client -in @("codex", "all")) {
+    $globalAgents = Join-Path $env:USERPROFILE ".codex\AGENTS.md"
+    $generatedAgents = Join-Path $root "generated\codex\AGENTS.md"
+    $skillsRoot = Join-Path $env:USERPROFILE ".agents\skills"
+    $startMarker = "<!-- agent-control-plane:start -->"
+    $endMarker = "<!-- agent-control-plane:end -->"
+
     if ($Plan -or $DryRun) {
-        Write-AcpStatus -Level "INFO" -Message "Plan: create or update $codexTarget after backup."
+        Write-AcpStatus -Level "INFO" -Message "Plan: update the managed block in $globalAgents after backup."
+        Write-AcpStatus -Level "INFO" -Message "Plan: link each repository skill into $skillsRoot without overwriting existing skills."
     } elseif ($Apply) {
-        if ($NoModifyExisting -and (Test-Path -LiteralPath $codexTarget)) {
-            Write-AcpStatus -Level "WARN" -Message "File exists and -NoModifyExisting is set: $codexTarget"
+        $managedContent = Get-Content -LiteralPath $generatedAgents -Raw -Encoding UTF8
+        $managedBlock = "$startMarker`n$managedContent$endMarker`n"
+        $current = if (Test-Path -LiteralPath $globalAgents) { Get-Content -LiteralPath $globalAgents -Raw -Encoding UTF8 } else { "" }
+        $pattern = [regex]::Escape($startMarker) + ".*?" + [regex]::Escape($endMarker) + "\s*"
+        $managedRegex = New-Object System.Text.RegularExpressions.Regex($pattern, [System.Text.RegularExpressions.RegexOptions]::Singleline)
+        if ($managedRegex.IsMatch($current)) {
+            $withoutManaged = $managedRegex.Replace($current, "").TrimEnd()
+            $next = if ([string]::IsNullOrWhiteSpace($withoutManaged)) { $managedBlock } else { $withoutManaged + "`n`n" + $managedBlock }
+        } elseif ([string]::IsNullOrWhiteSpace($current)) {
+            $next = $managedBlock
         } else {
-            $backup = New-AcpBackup -Path $codexTarget
-            if ($backup) { Write-AcpStatus -Level "OK" -Message "Backup created: $backup" }
-            Set-AcpFileAtomic -Path $codexTarget -Content $codexContent
-            Write-AcpStatus -Level "OK" -Message "Managed Codex config written."
+            $next = $current.TrimEnd() + "`n`n" + $managedBlock
+        }
+
+        $normalizedCurrent = ($current -replace "`r`n", "`n").TrimEnd()
+        $normalizedNext = ($next -replace "`r`n", "`n").TrimEnd()
+        if ($normalizedNext -ne $normalizedCurrent) {
+            if ($NoModifyExisting -and (Test-Path -LiteralPath $globalAgents)) {
+                Write-AcpStatus -Level "WARN" -Message "AGENTS.md exists and -NoModifyExisting is set: $globalAgents"
+            } else {
+                $backup = New-AcpBackup -Path $globalAgents
+                if ($backup) { Write-AcpStatus -Level "OK" -Message "Backup created: $backup" }
+                Set-AcpFileAtomic -Path $globalAgents -Content $next
+                Write-AcpStatus -Level "OK" -Message "Global Codex guidance updated."
+            }
+        } else {
+            Write-AcpStatus -Level "OK" -Message "Global Codex guidance is already current."
+        }
+
+        if (-not (Test-Path -LiteralPath $skillsRoot)) {
+            New-Item -ItemType Directory -Force -Path $skillsRoot | Out-Null
+        }
+        Get-ChildItem -LiteralPath (Join-Path $root "skills") -Directory | ForEach-Object {
+            $target = Join-Path $skillsRoot $_.Name
+            if (Test-Path -LiteralPath $target) {
+                $item = Get-Item -LiteralPath $target -Force
+                $targetText = [string]$item.Target
+                if ($item.LinkType -and $targetText -eq $_.FullName) {
+                    Write-AcpStatus -Level "OK" -Message "Skill link already current: $($_.Name)"
+                } else {
+                    Write-AcpStatus -Level "WARN" -Message "Existing skill was not replaced: $target"
+                }
+            } else {
+                New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+                Write-AcpStatus -Level "OK" -Message "Global skill linked: $($_.Name)"
+            }
         }
     }
 }
 
-Write-AcpStatus -Level "WARN" -Message "Claude Code and ChatGPT require manual review/auth before applying user settings."
+if ($Client -in @("claude-code", "chatgpt", "all")) {
+    Write-AcpStatus -Level "WARN" -Message "Claude Code and ChatGPT use generated instructions and require their own supported import/auth flow."
+}
+Write-AcpStatus -Level "INFO" -Message "MCP servers remain opt-in: no server is enabled in the current registry."
 Write-AcpStatus -Level "INFO" -Message "Next step: powershell -ExecutionPolicy Bypass -File .\scripts\doctor.ps1"

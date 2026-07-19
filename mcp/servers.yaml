@@ -50,3 +50,28 @@ servers:
       network: true
       can_modify_external_data: false
     security_notes: "Read-only public metadata. API key is forwarded from the local environment and must never be committed. Captions and private data are intentionally unsupported."
+  - name: glasp-library
+    description: "Remote read-only MCP for the user-authorized Glasp library of highlights and memories."
+    enabled: false
+    profiles: ["research"]
+    transport: streamable-http
+    location: remote
+    command: null
+    args: null
+    url: "https://glasp.co/api/mcp"
+    supported_clients: ["codex", "chatgpt", "claude-code"]
+    supported_os: ["windows", "macos", "linux"]
+    required_programs: []
+    install: "Connect through the MCP client's OAuth flow after reviewing Glasp permissions. No token is stored in this repository."
+    env: []
+    secret_names: []
+    official_source: "https://glasp.co/mcp"
+    version_policy: "Hosted remote service; verify the official OAuth consent screen before enabling."
+    verify_command: null
+    health_check: "List or query the user-authorized Glasp library after OAuth approval."
+    trust_level: medium
+    permissions:
+      filesystem: []
+      network: true
+      can_modify_external_data: false
+    security_notes: "Read-only library access via OAuth. It is not a documented bulk transcript API and must not be used to bypass platform access controls."

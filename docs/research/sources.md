@@ -10,6 +10,8 @@
 | Claude Code | Claude Code settings, `https://code.claude.com/docs/en/settings` | Да | Подтверждены settings JSON и настройки MCP из `.mcp.json`. |
 | Claude Code | Claude Code MCP docs, `https://code.claude.com/docs/en/mcp` | Да | Подтверждено добавление MCP через `claude mcp add` и OAuth через `/mcp`. |
 | MCP | Model Context Protocol transports, `https://modelcontextprotocol.io/specification/2025-06-18/basic/transports` | Да | Подтверждены стандартные транспорты `stdio` и Streamable HTTP, JSON-RPC и UTF-8. |
+| Glasp | Glasp MCP Connector, `https://glasp.co/mcp` | Да | MCP использует OAuth и заявлен как read-only доступ к пользовательской библиотеке highlights и memories; массовое создание расшифровок новых URL не документировано. |
+| Glasp | YouTube Summary, `https://glasp.co/youtube-summary` | Да | Сервис заявляет доступ к расшифровкам, сводкам, таймкодам и копированию текста, если они доступны; результат должен отмечать фактический статус содержания. |
 | ChatGPT | OpenAI Help Center: Projects in ChatGPT | Да | Подтверждены файлы и инструкции проекта; инструкции проекта действуют внутри проекта. |
 | ChatGPT | OpenAI Help Center: Custom Instructions | Да | Подтверждены пользовательские инструкции во всех новых чатах; нет подтверждения автоматической загрузки правил из GitHub в обычный новый чат. |
 | ChatGPT | OpenAI Help Center: Apps in ChatGPT | Да | Подтверждены apps/connectors и OAuth; пользователь подключает приложения вручную. |

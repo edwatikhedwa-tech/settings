@@ -1,6 +1,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { buildSearchPlan, rankResearchCandidates } from "./research.mjs";
 
 const apiBase = "https://www.googleapis.com/youtube/v3";
 const server = new Server(
@@ -67,6 +68,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         additionalProperties: false,
       },
     },
+    {
+      name: "youtube_research_candidates",
+      description: "Search several bounded queries, deduplicate results, enrich them with public metadata, and return ranked candidates plus a six-video deep-dive set.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          topic: { type: "string", minLength: 1 },
+          queries: { type: "array", minItems: 1, maxItems: 4, items: { type: "string", minLength: 1 } },
+          max_candidates: { type: "integer", minimum: 1, maximum: 15, default: 15 },
+          deep_dive_count: { type: "integer", minimum: 1, maximum: 6, default: 6 },
+          language: { type: "string", minLength: 2, maxLength: 5 },
+          published_after: { type: "string", description: "RFC 3339 timestamp, for example 2026-01-01T00:00:00Z." },
+        },
+        required: ["topic"],
+        additionalProperties: false,
+      },
+    },
   ],
 }));
 
@@ -91,6 +109,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         id: args.video_ids.join(","),
       });
       return textResult(payload);
+    }
+    if (request.params.name === "youtube_research_candidates") {
+      const queries = buildSearchPlan(args.topic, args.queries ?? []);
+      const searchPayloads = await Promise.all(queries.map((query) => youtubeGet("search", {
+        part: "snippet",
+        type: "video",
+        q: query,
+        maxResults: 10,
+        order: "relevance",
+        relevanceLanguage: args.language,
+        publishedAfter: args.published_after,
+      })));
+      const videoIds = [...new Set(searchPayloads.flatMap((payload) => payload.items ?? []).map((item) => item.id?.videoId).filter(Boolean))].slice(0, 50);
+      const details = videoIds.length === 0 ? { items: [] } : await youtubeGet("videos", {
+        part: "snippet,contentDetails,statistics,status",
+        id: videoIds.join(","),
+      });
+      const ranked = rankResearchCandidates(details.items ?? [], args.topic, args.max_candidates ?? 15, args.deep_dive_count ?? 6);
+      return textResult({ topic: args.topic, queries, candidateCount: ranked.candidates.length, ...ranked });
     }
     return { isError: true, content: [{ type: "text", text: `Unknown tool: ${request.params.name}` }] };
   } catch (error) {

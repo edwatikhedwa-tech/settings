@@ -19,7 +19,17 @@ This local, read-only MCP server uses the official YouTube Data API v3.
 npm install
 ```
 
-The server exposes `youtube_search` and `youtube_video_details`. It does not download captions or access private YouTube data.
+The server exposes `youtube_search`, `youtube_video_details`, and `youtube_research_candidates`.
+
+`youtube_research_candidates` accepts up to four queries, combines the public search results, deduplicates videos, enriches them with public descriptions, external links, statistics, and the API caption flag, then returns at most 15 candidates and up to six deep-dive videos. It does not download captions or access private YouTube data.
+
+For a repeatable research run, first create the report and task card:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ..\..\scripts\start-youtube-research.ps1 -Slug agent-environment-research -Title "Agent environment research" -Topic "agent environment setup" -Plan
+```
+
+Use `-Apply` only after reviewing the plan. Then ask the agent: `исследуй тему: <тема>`.
 
 After setup, verify the real MCP path without printing the key:
 

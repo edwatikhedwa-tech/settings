@@ -24,6 +24,31 @@ try {
   if (result.isError) throw new Error(result.content[0]?.text || "MCP tool returned an error.");
   const payload = JSON.parse(result.content[0].text);
   if (!payload.items?.length) throw new Error("MCP returned no search results.");
+
+  const research = await client.request(
+    {
+      method: "tools/call",
+      params: {
+        name: "youtube_research_candidates",
+        arguments: {
+          topic: "agent environment setup",
+          queries: ["agent environment setup", "AI agent workspace setup", "настройка окружения агентов"],
+          max_candidates: 15,
+          deep_dive_count: 6,
+        },
+      },
+    },
+    CallToolResultSchema,
+  );
+  if (research.isError) throw new Error(research.content[0]?.text || "MCP research tool returned an error.");
+  const researchPayload = JSON.parse(research.content[0].text);
+  if (!researchPayload.candidates?.length || !researchPayload.deepDive?.length) {
+    throw new Error("MCP research tool returned no candidates or deep-dive videos.");
+  }
+  if (researchPayload.candidates.length > 15 || researchPayload.deepDive.length > 6) {
+    throw new Error("MCP research tool exceeded its bounded result limits.");
+  }
+  if (process.env.RESEARCH_SMOKE_OUTPUT === "1") console.log(JSON.stringify(researchPayload));
   console.log("[OK] YouTube MCP live search passed.");
 } finally {
   await transport.close();

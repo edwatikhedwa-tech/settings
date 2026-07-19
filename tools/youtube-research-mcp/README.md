@@ -20,3 +20,9 @@ npm install
 ```
 
 The server exposes `youtube_search` and `youtube_video_details`. It does not download captions or access private YouTube data.
+
+After setup, verify the real MCP path without printing the key:
+
+```powershell
+npm run smoke
+```

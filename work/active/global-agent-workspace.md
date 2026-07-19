@@ -22,6 +22,7 @@ The repository is the canonical source for policies, skills, MCP registry, task 
 - The YouTube MCP passed its live API smoke test; search and video-statistics calls also succeeded for a real research topic.
 - The first bounded YouTube research note is recorded in `knowledge/youtube/agent-environment-setup.md`. Selected videos did not expose captions to the permitted transcript tool, and that limitation is recorded in the note.
 - After the Codex restart, the configured local YouTube MCP appeared in the active tool registry and completed a real Russian-language search. The research note now includes a metadata-and-chapters-based overview of five relevant videos.
+- The built-in Codex browser was used to read publicly displayed YouTube subtitles from three videos. The research note now records seven timestamped observations about `AGENTS.md`, skills, and MCP.
 
 ## Decisions
 
@@ -33,6 +34,6 @@ The repository is the canonical source for policies, skills, MCP registry, task 
 
 ## Next Action
 
-Use the `youtube-research` skill for the next bounded topic; prefer videos with descriptions and chapter lists, and append transcript evidence only when it is actually available through an authorized tool.
+Use the `youtube-research` skill for the next bounded topic; prefer public videos whose subtitles visibly render in the built-in browser, then add timestamped observations to the research note.
 
 ## References

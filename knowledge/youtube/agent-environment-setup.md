@@ -74,6 +74,31 @@ This is a concise review of authors' public descriptions and chapter lists retur
 
 The recurring operational pattern is clear: do not try to make one huge prompt do every job. Keep stable behavior in `AGENTS.md`, repeatable procedures in `skills/`, service connections in MCP configuration, and project/task context in versioned Markdown. The current repository already implements that pattern and adds an explicit export/import mechanism through Git and the bootstrap scripts.
 
+## Проверка по видимым субтитрам
+
+19 July 2026 the following fragments were read from public subtitles rendered in the YouTube player through the built-in Codex browser. These are observations of the video content, not inferences from titles or descriptions.
+
+| Source and timestamp | Observed point | Practical conclusion |
+| --- | --- | --- |
+| [Net Ninja: AGENTS.md, 01:17](https://www.youtube.com/watch?v=NlNuoH5PPl4&t=75s) | The author explicitly contrasts `CLAUDE.md` with `AGENTS.md` for Codex. | Keep durable agent guidance in a repository file, not only in a chat prompt. |
+| [Net Ninja: AGENTS.md, 03:31](https://www.youtube.com/watch?v=NlNuoH5PPl4&t=210s) | The author explains that Codex reads the current project while applying the file. | Global guidance should stay concise; project-specific instructions belong close to the project. |
+| [JeredBlu: Skills, 01:31](https://www.youtube.com/watch?v=MsJzacfjzp8&t=90s) | The video explains progressive disclosure: a skill can give Codex only the level of detail required for the current task. | Skills should package a focused procedure and supporting files, not duplicate every global rule. |
+| [JeredBlu: Skills, 02:46](https://www.youtube.com/watch?v=MsJzacfjzp8&t=165s) | The author demonstrates building, evaluating, and installing skills. | Treat skills as versioned artifacts with a verification step. |
+| [JeredBlu: Skills, 04:31](https://www.youtube.com/watch?v=MsJzacfjzp8&t=270s) | The example creates project-local Codex material to make a skill available in that project. | Use project-local skills when a workflow should not affect every repository; use the global skill directory only for genuinely universal procedures. |
+| [IBM Technology: MCP, 01:17](https://www.youtube.com/watch?v=eur8dUO9mvE&t=75s) | The diagram and narration show MCP connecting an agent to databases and APIs. | MCP is an integration boundary for tools and data, not a replacement for rules or skills. |
+| [IBM Technology: MCP, 02:31](https://www.youtube.com/watch?v=eur8dUO9mvE&t=150s) | The explanation describes the model selecting which available tool to use. | Expose a small, purposeful tool set and keep high-impact capabilities opt-in. |
+
+### Итог исследования
+
+Для вашей цели нужна не единая «магическая» конфигурация, а переносимый набор из четырёх слоёв:
+
+1. `AGENTS.md`: стабильные правила и границы поведения.
+2. `skills/`: повторяемые процедуры с проверкой результата.
+3. MCP: минимальные подключения к конкретным данным и действиям.
+4. Git-репозиторий с `work/` и `knowledge/`: экспорт, импорт, история решений и накопление исследований.
+
+Именно так сейчас устроен `settings`. Следующая задача исследования может использовать этот же шаблон и добавлять доказательства с таймкодами, когда YouTube реально отображает субтитры в браузере.
+
 ## Confirmed implementation guidance
 
 Official Codex documentation confirms the parts that are actionable for this workspace:

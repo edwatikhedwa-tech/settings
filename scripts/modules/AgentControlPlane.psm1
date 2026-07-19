@@ -56,7 +56,12 @@ function Invoke-AcpGenerator {
             & $venvPython (Join-Path $root "scripts\build-configs.py")
             return $LASTEXITCODE
         }
-        Write-AcpStatus -Level "WARN" -Message "Python not found; generation skipped."
+        $node = Get-Command node -ErrorAction SilentlyContinue
+        if ($node) {
+            & $node.Source (Join-Path $root "scripts\build-configs.mjs")
+            return $LASTEXITCODE
+        }
+        Write-AcpStatus -Level "WARN" -Message "Python and Node.js not found; generation skipped."
         return 0
     }
     & $python.Source (Join-Path $root "scripts\build-configs.py")

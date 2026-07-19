@@ -45,6 +45,14 @@ model_instructions_file = "../generated/codex/instructions.md"
 """
     changed = write_if_changed(GENERATED_DIR / "codex" / "config.toml", codex_config) or changed
 
+    global_agents = """# Agent Control Plane Global Guidance
+
+This file is generated from the canonical policies in this repository.
+It is intended for the managed block in ~/.codex/AGENTS.md.
+
+""" + policies + "\n"
+    changed = write_if_changed(GENERATED_DIR / "codex" / "AGENTS.md", global_agents) or changed
+
     claude_note = """# Claude Code adapter
 
 Use `generated/claude-code/instructions.md` as project memory content only after reviewing current Claude Code documentation.

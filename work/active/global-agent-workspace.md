@@ -18,16 +18,17 @@ The repository is the canonical source for policies, skills, MCP registry, task 
 - Nine repository skills are linked into `~/.agents/skills`.
 - Re-running `bootstrap.ps1 -Apply -Client codex` is idempotent.
 - `work/` and `knowledge/` now store task continuity and research summaries in Git.
+- A local read-only YouTube Data API MCP server is available in `tools/youtube-research-mcp/`.
 
 ## Decisions
 
 - Use Git as the export/import mechanism and canonical history.
 - Keep global rules in a managed block so existing user guidance is preserved.
-- Keep MCP servers opt-in; the current registry has no enabled server.
+- Keep MCP servers opt-in; `youtube-research` is registered but disabled until its key is configured.
 - Record YouTube research as bounded, cited notes rather than claiming an unbounded scan of all videos.
 
 ## Next Action
 
-Choose and authorize a concrete YouTube data source or MCP server, then add it to the registry with its required API credential name and least-privilege profile.
+Create a Google Cloud project, enable YouTube Data API v3, create a restricted `YOUTUBE_API_KEY`, then enable the registered local MCP server.
 
 ## References

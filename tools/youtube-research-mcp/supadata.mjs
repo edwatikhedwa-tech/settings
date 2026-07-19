@@ -1,3 +1,5 @@
+import { defaultBudgetDirectory, monthlyBudget, reserveSupadataRequest } from "./budget.mjs";
+
 const supadataTranscriptEndpoint = "https://api.supadata.ai/v1/transcript";
 
 export function supadataApiKey(environment = process.env) {
@@ -51,14 +53,22 @@ export async function fetchSupadataTranscripts(videoUrls, options = {}) {
   const apiKey = options.apiKey ?? supadataApiKey(options.environment);
   const uniqueUrls = [...new Set(videoUrls.map(validateYouTubeUrl))];
   const results = [];
+  const limit = options.budgetLimit ?? monthlyBudget(options.environment);
+  const reserveRequest = options.reserveRequest ?? reserveSupadataRequest;
   for (const videoUrl of uniqueUrls) {
+    const budget = await reserveRequest({ directory: options.budgetDirectory ?? defaultBudgetDirectory, limit, now: options.now });
+    if (!budget.allowed) {
+      results.push({ status: "budget-exhausted", provider: "supadata", videoUrl, error: `Local monthly research budget is exhausted (${budget.used}/${budget.limit}).` });
+      continue;
+    }
     try {
-      results.push({ status: "available", ...(await fetchSupadataTranscript(videoUrl, { ...options, apiKey })) });
+      results.push({ status: "available", budget, ...(await fetchSupadataTranscript(videoUrl, { ...options, apiKey })) });
     } catch (error) {
       results.push({
         status: "unavailable",
         provider: "supadata",
         videoUrl,
+        budget,
         error: error instanceof Error ? error.message : "Supadata transcript request failed.",
       });
     }

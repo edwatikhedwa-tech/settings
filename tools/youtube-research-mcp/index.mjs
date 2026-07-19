@@ -4,6 +4,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 import { buildSearchPlan, rankResearchCandidates, selectCandidateLimit } from "./research.mjs";
 import { captureJobStatus, createCaptureJob, defaultCaptureDirectory, defaultJobDirectory, listCaptures } from "../youtube-research-capture/capture-store.mjs";
 import { fetchSupadataTranscripts } from "./supadata.mjs";
+import { monthlyBudget, readSupadataBudget } from "./budget.mjs";
 
 const apiBase = "https://www.googleapis.com/youtube/v3";
 const server = new Server(
@@ -135,6 +136,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         additionalProperties: false,
       },
     },
+    {
+      name: "youtube_transcript_budget",
+      description: "Read the local monthly Supadata research budget. It records attempted transcript API requests locally and never exposes the API key.",
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    },
   ],
 }));
 
@@ -215,6 +221,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         storage: "returned only to the active research run; full transcripts must remain outside public Git",
         results: transcripts,
       });
+    }
+    if (request.params.name === "youtube_transcript_budget") {
+      return textResult({ provider: "supadata", ...await readSupadataBudget({ limit: monthlyBudget() }) });
     }
     return { isError: true, content: [{ type: "text", text: `Unknown tool: ${request.params.name}` }] };
   } catch (error) {

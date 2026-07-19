@@ -21,6 +21,7 @@ The repository is the canonical source for policies, skills, MCP registry, task 
 - A local read-only YouTube Data API MCP server is available in `tools/youtube-research-mcp/`.
 - The YouTube MCP passed its live API smoke test; search and video-statistics calls also succeeded for a real research topic.
 - The first bounded YouTube research note is recorded in `knowledge/youtube/agent-environment-setup.md`. Selected videos did not expose captions to the permitted transcript tool, and that limitation is recorded in the note.
+- After the Codex restart, the configured local YouTube MCP appeared in the active tool registry and completed a real Russian-language search. The research note now includes a metadata-and-chapters-based overview of five relevant videos.
 
 ## Decisions
 
@@ -32,6 +33,6 @@ The repository is the canonical source for policies, skills, MCP registry, task 
 
 ## Next Action
 
-Restart Codex so the newly configured local YouTube MCP is loaded by a fresh application session, then use the `youtube-research` skill for subsequent bounded notes.
+Use the `youtube-research` skill for the next bounded topic; prefer videos with descriptions and chapter lists, and append transcript evidence only when it is actually available through an authorized tool.
 
 ## References

@@ -4,13 +4,10 @@
 
 Для работы требуется разрешённый источник данных: подключённый MCP, официальный YouTube API или доступный в среде инструмент исследования. Он может требовать отдельный API-ключ, OAuth или квоту. Эти данные не сохраняются в Git.
 
-В этом репозитории есть локальный `tools/youtube-research-mcp/`. После установки зависимости и создания ключа он предоставляет только поиск и метаданные публичных роликов. Добавь в `~/.codex/config.toml` после установки:
+В этом репозитории есть локальный `tools/youtube-research-mcp/`. После установки зависимости и создания ключа он предоставляет только поиск и метаданные публичных роликов. Вместо ручного изменения `~/.codex/config.toml` выполни:
 
-```toml
-[mcp_servers.youtube_research]
-command = "node"
-args = ["C:/Users/edwat/OneDrive/Документы/SDK/agent-control-plane/tools/youtube-research-mcp/index.mjs"]
-env_vars = ["YOUTUBE_API_KEY"]
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\enable-youtube-mcp.ps1 -Apply
 ```
 
 Ключ передаётся из локального окружения, а не записывается в TOML. YouTube Data API требует OAuth и права на редактирование видео для загрузки caption tracks, поэтому сервер намеренно не пытается получать субтитры чужих роликов.

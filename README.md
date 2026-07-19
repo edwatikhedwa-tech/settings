@@ -82,3 +82,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1 -DryRun
 - Завершённые задачи: `work/done/`.
 - Накопленные исследования: `knowledge/`, включая `knowledge/youtube/`.
 - Видеоисследования: `docs/youtube-research.md` и навык `youtube-research`.
+
+После создания ограниченного ключа YouTube Data API включи локальный MCP одной командой:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\enable-youtube-mcp.ps1 -Apply
+```

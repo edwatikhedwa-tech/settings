@@ -22,6 +22,7 @@ Assert-True (Test-Path (Join-Path $Root "knowledge\README.md")) "knowledge base 
 Assert-True (Test-Path (Join-Path $Root "skills\task-memory\SKILL.md")) "task-memory skill missing"
 Assert-True (Test-Path (Join-Path $Root "skills\youtube-research\SKILL.md")) "youtube-research skill missing"
 Assert-True (Test-Path (Join-Path $Root "scripts\new-task.ps1")) "new-task script missing"
+Assert-True (Test-Path (Join-Path $Root "scripts\enable-youtube-mcp.ps1")) "YouTube MCP enable script missing"
 Assert-True (Test-Path (Join-Path $Root "policies\legal-compliance.md")) "legal compliance policy missing"
 Assert-True ((Read-Text (Join-Path $Root "mcp\servers.yaml")) -match "secret_names") "servers.yaml lacks secret_names"
 Assert-True ((Read-Text (Join-Path $Root ".gitignore")) -match "\.env") ".gitignore does not ignore .env"
@@ -63,6 +64,9 @@ if ($python) {
 
 & powershell -ExecutionPolicy Bypass -File (Join-Path $Root "scripts\uninstall.ps1") -DryRun | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) "uninstall -DryRun failed"
+
+& powershell -ExecutionPolicy Bypass -File (Join-Path $Root "scripts\enable-youtube-mcp.ps1") -Plan | Out-Null
+Assert-True ($LASTEXITCODE -eq 0) "YouTube MCP enable plan failed"
 
 & powershell -ExecutionPolicy Bypass -File (Join-Path $Root "scripts\doctor.ps1") | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) "doctor failed"
